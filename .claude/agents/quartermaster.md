@@ -25,3 +25,8 @@ Testing protocol:
 4. Report pass/fail status back to command
 
 Use AAA pattern: Arrange, Act, Assert.
+
+After verifying a feature is complete:
+1. Ensure tests pass
+2. Update progress.md
+3. Check if README.md needs updating

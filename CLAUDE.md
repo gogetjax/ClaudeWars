@@ -29,6 +29,7 @@ Players command units (infantry, armor, artillery) on a grid battlefield.
 - Commit after completing each logical unit of work
 - Format: `type(scope): description` (e.g., `feat(combat): add terrain modifiers`)
 - Types: feat, fix, refactor, test, docs, chore
+- Always push to origin after every commit
 
 ## Agent Delegation Rules
 - Use scout agent for all file reading, codebase exploration, and research
