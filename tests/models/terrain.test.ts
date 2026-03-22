@@ -77,3 +77,52 @@ describe('createTerrain()', () => {
     expect(createTerrain('urban')).toEqual(urban());
   });
 });
+
+describe('terrain factory independence', () => {
+  it('returns fresh objects each call', () => {
+    const a = plains();
+    const b = plains();
+    expect(a).toEqual(b);
+    expect(a).not.toBe(b);
+  });
+
+  it('forest returns independent objects', () => {
+    const a = forest();
+    const b = forest();
+    expect(a).not.toBe(b);
+  });
+
+  it('createTerrain returns independent objects', () => {
+    const a = createTerrain('hills');
+    const b = createTerrain('hills');
+    expect(a).toEqual(b);
+    expect(a).not.toBe(b);
+  });
+});
+
+describe('terrain defensive values', () => {
+  it('river has negative defense bonus', () => {
+    const t = river();
+    expect(t.defenseBonus).toBeLessThan(0);
+  });
+
+  it('urban has highest defense bonus', () => {
+    const all = [
+      plains(), forest(), hills(), river(), urban(),
+    ];
+    const maxBonus = Math.max(
+      ...all.map((t) => t.defenseBonus)
+    );
+    expect(urban().defenseBonus).toBe(maxBonus);
+  });
+
+  it('river has highest movement cost', () => {
+    const all = [
+      plains(), forest(), hills(), river(), urban(),
+    ];
+    const maxCost = Math.max(
+      ...all.map((t) => t.movementCost)
+    );
+    expect(river().movementCost).toBe(maxCost);
+  });
+});

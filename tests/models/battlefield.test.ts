@@ -7,8 +7,12 @@ import {
   getUnitAt,
   isInBounds,
 } from '../../src/models/battlefield';
-import { forest } from '../../src/models/terrain';
-import { createInfantry, createArmor } from '../../src/models/unit';
+import { forest, hills } from '../../src/models/terrain';
+import {
+  createInfantry,
+  createArmor,
+  createArtillery,
+} from '../../src/models/unit';
 
 describe('createBattlefield()', () => {
   it('creates correct dimensions', () => {
@@ -212,5 +216,158 @@ describe('isInBounds()', () => {
     expect(isInBounds(tiny, { x: 0, y: 0 })).toBe(true);
     expect(isInBounds(tiny, { x: 1, y: 0 })).toBe(false);
     expect(isInBounds(tiny, { x: 0, y: 1 })).toBe(false);
+  });
+
+  it('rejects large negative coordinates', () => {
+    expect(
+      isInBounds(bf, { x: -100, y: -100 })
+    ).toBe(false);
+  });
+
+  it('rejects large positive coordinates', () => {
+    expect(
+      isInBounds(bf, { x: 999, y: 999 })
+    ).toBe(false);
+  });
+});
+
+describe('createBattlefield() edge cases', () => {
+  it('handles 0x0 grid', () => {
+    const bf = createBattlefield(0, 0);
+    expect(bf.width).toBe(0);
+    expect(bf.height).toBe(0);
+    expect(bf.grid.length).toBe(0);
+    expect(bf.units.size).toBe(0);
+  });
+
+  it('handles asymmetric dimensions', () => {
+    const bf = createBattlefield(1, 10);
+    expect(bf.grid.length).toBe(10);
+    expect(bf.grid[0].length).toBe(1);
+  });
+});
+
+describe('placeUnit() edge cases', () => {
+  it('rejects negative x coordinate', () => {
+    const bf = createBattlefield(5, 5);
+    const unit = createInfantry(
+      'inf1', 'p1', { x: -1, y: 0 }
+    );
+    const result = placeUnit(bf, unit);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('out of bounds');
+    }
+  });
+
+  it('rejects negative y coordinate', () => {
+    const bf = createBattlefield(5, 5);
+    const unit = createInfantry(
+      'inf1', 'p1', { x: 0, y: -1 }
+    );
+    const result = placeUnit(bf, unit);
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects position at exact width boundary', () => {
+    const bf = createBattlefield(5, 5);
+    const unit = createInfantry(
+      'inf1', 'p1', { x: 5, y: 0 }
+    );
+    const result = placeUnit(bf, unit);
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects position at exact height boundary', () => {
+    const bf = createBattlefield(5, 5);
+    const unit = createInfantry(
+      'inf1', 'p1', { x: 0, y: 5 }
+    );
+    const result = placeUnit(bf, unit);
+    expect(result.ok).toBe(false);
+  });
+
+  it('succeeds at max valid position', () => {
+    const bf = createBattlefield(5, 5);
+    const unit = createInfantry(
+      'inf1', 'p1', { x: 4, y: 4 }
+    );
+    const result = placeUnit(bf, unit);
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe('removeUnit() with multiple units', () => {
+  it('preserves other units when removing one', () => {
+    const bf = createBattlefield(5, 5);
+    const u1 = createInfantry(
+      'inf1', 'p1', { x: 0, y: 0 }
+    );
+    const u2 = createArmor(
+      'arm1', 'p1', { x: 1, y: 1 }
+    );
+    const u3 = createArtillery(
+      'art1', 'p1', { x: 2, y: 2 }
+    );
+    const r1 = placeUnit(bf, u1);
+    if (!r1.ok) return;
+    const r2 = placeUnit(r1.value, u2);
+    if (!r2.ok) return;
+    const r3 = placeUnit(r2.value, u3);
+    if (!r3.ok) return;
+
+    const updated = removeUnit(r3.value, 'arm1');
+    expect(updated.units.size).toBe(2);
+    expect(updated.units.has('inf1')).toBe(true);
+    expect(updated.units.has('arm1')).toBe(false);
+    expect(updated.units.has('art1')).toBe(true);
+  });
+});
+
+describe('getUnitAt() with multiple units', () => {
+  it('finds the correct unit among many', () => {
+    const bf = createBattlefield(5, 5);
+    const u1 = createInfantry(
+      'inf1', 'p1', { x: 0, y: 0 }
+    );
+    const u2 = createArmor(
+      'arm1', 'p2', { x: 3, y: 3 }
+    );
+    const r1 = placeUnit(bf, u1);
+    if (!r1.ok) return;
+    const r2 = placeUnit(r1.value, u2);
+    if (!r2.ok) return;
+
+    const found = getUnitAt(r2.value, { x: 3, y: 3 });
+    expect(found).not.toBeNull();
+    expect(found?.id).toBe('arm1');
+    expect(found?.type).toBe('armor');
+  });
+});
+
+describe('setTerrain() preserves units', () => {
+  it('keeps units intact after terrain change', () => {
+    const bf = createBattlefield(5, 5);
+    const unit = createInfantry(
+      'inf1', 'p1', { x: 2, y: 2 }
+    );
+    const r = placeUnit(bf, unit);
+    if (!r.ok) return;
+
+    const updated = setTerrain(
+      r.value, 2, 2, forest()
+    );
+    expect(updated.grid[2][2].type).toBe('forest');
+    expect(updated.units.get('inf1')).toEqual(unit);
+    expect(updated.units.size).toBe(1);
+  });
+
+  it('can set multiple terrain cells', () => {
+    const bf = createBattlefield(3, 3);
+    const step1 = setTerrain(bf, 0, 0, forest());
+    const step2 = setTerrain(step1, 2, 2, hills());
+    expect(step2.grid[0][0].type).toBe('forest');
+    expect(step2.grid[2][2].type).toBe('hills');
+    expect(step2.grid[1][1].type).toBe('plains');
   });
 });

@@ -104,4 +104,52 @@ describe('createUnit()', () => {
     expect(unit.owner).toBe('player-x');
     expect(unit.position).toEqual({ x: 9, y: 7 });
   });
+
+  it('preserves id for all unit types', () => {
+    const inf = createUnit('infantry', 'a', 'p1', pos);
+    const arm = createUnit('armor', 'b', 'p1', pos);
+    const art = createUnit('artillery', 'c', 'p1', pos);
+    expect(inf.id).toBe('a');
+    expect(arm.id).toBe('b');
+    expect(art.id).toBe('c');
+  });
+});
+
+describe('createArtillery() owner and position', () => {
+  it('sets owner and position', () => {
+    const unit = createArtillery(
+      'art1', 'p2', { x: 7, y: 3 }
+    );
+    expect(unit.id).toBe('art1');
+    expect(unit.owner).toBe('p2');
+    expect(unit.position).toEqual({ x: 7, y: 3 });
+  });
+});
+
+describe('unit position edge cases', () => {
+  it('accepts zero coordinates', () => {
+    const unit = createInfantry(
+      'inf1', 'p1', { x: 0, y: 0 }
+    );
+    expect(unit.position).toEqual({ x: 0, y: 0 });
+  });
+
+  it('accepts negative coordinates', () => {
+    const unit = createArmor(
+      'arm1', 'p1', { x: -5, y: -3 }
+    );
+    expect(unit.position).toEqual({ x: -5, y: -3 });
+  });
+
+  it('each factory returns independent objects', () => {
+    const a = createInfantry('a', 'p1', { x: 1, y: 1 });
+    const b = createInfantry('b', 'p1', { x: 1, y: 1 });
+    expect(a).not.toBe(b);
+    expect(a).toEqual(
+      expect.objectContaining({
+        type: 'infantry',
+        position: { x: 1, y: 1 },
+      })
+    );
+  });
 });
