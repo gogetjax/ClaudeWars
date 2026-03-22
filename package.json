@@ -1,0 +1,29 @@
+{
+  "name": "claudewars",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "npx tsx src/index.ts",
+    "build": "tsc",
+    "test": "npx vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gogetjax/ClaudeWars.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/gogetjax/ClaudeWars/issues"
+  },
+  "homepage": "https://github.com/gogetjax/ClaudeWars#readme",
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
