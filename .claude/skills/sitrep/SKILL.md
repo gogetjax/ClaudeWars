@@ -1,4 +1,5 @@
 ---
+name: sitrep
 description: "Generate a situation report of the project's current status"
 ---
 

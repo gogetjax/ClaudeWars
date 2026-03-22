@@ -6,9 +6,10 @@
 - [x] Project initialization and Git setup
 - [x] CLAUDE.md and agent configuration
 - [x] Architecture documentation
+- [x] Core TypeScript models (Unit, Terrain, Battlefield)
+- [x] Model unit tests (types, unit, terrain, battlefield)
 
 ### In Progress
-- [ ] Core TypeScript models (Unit, Terrain, Battlefield)
 
 ### Pending
 - [ ] Combat resolution engine
