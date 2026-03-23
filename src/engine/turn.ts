@@ -9,11 +9,8 @@ import {
   ok,
   err,
 } from '../models/types.js';
-import {
-  Battlefield,
-  removeUnit,
-} from '../models/battlefield.js';
-import { Unit } from '../models/unit.js';
+import type { Battlefield } from '../models/battlefield.js';
+import { removeUnit } from '../models/battlefield.js';
 import { resolveAttack } from './combat.js';
 import { executeMove } from './movement.js';
 
@@ -26,7 +23,7 @@ export function createGameState(
   players: Player[]
 ): GameState {
   return {
-    battlefield: battlefield as GameState['battlefield'],
+    battlefield,
     players,
     currentTurn: 1,
     currentPlayerIndex: 0,
@@ -68,10 +65,12 @@ export function processActions(
   actions: Action[]
 ): Result<GameState, string> {
   const player = currentPlayer(state);
-  let bf = state.battlefield as unknown as Battlefield;
+  let bf = state.battlefield;
   let players = state.players;
   let log = [...state.log];
   let winner = state.winner;
+
+  let hasAttacked = false;
 
   for (const action of actions) {
     // Quit needs no unit validation
@@ -86,7 +85,15 @@ export function processActions(
         state,
         `${player.name} surrendered`
       ));
-      continue;
+      break;
+    }
+
+    // Enforce move-before-attack ordering
+    if (action.type === 'move' && hasAttacked) {
+      return err('Cannot move after attacking');
+    }
+    if (action.type === 'attack') {
+      hasAttacked = true;
     }
 
     // Validate unit belongs to current player
@@ -187,7 +194,7 @@ export function processActions(
 
   return ok({
     ...state,
-    battlefield: bf as GameState['battlefield'],
+    battlefield: bf,
     players,
     log,
     winner,
@@ -222,8 +229,7 @@ export function advanceTurn(
 export function checkVictory(
   state: GameState
 ): GameState {
-  const bf =
-    state.battlefield as unknown as Battlefield;
+  const bf = state.battlefield;
 
   const playersWithAlive = state.players.filter(
     p => p.unitIds.some(uid => {

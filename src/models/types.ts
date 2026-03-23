@@ -1,5 +1,5 @@
 // Shared types for ClaudeWars
-// No imports from other model files to avoid circular deps
+import type { Battlefield } from './battlefield.js';
 
 export type Position = {
   x: number;
@@ -26,16 +26,8 @@ export type Player = {
   unitIds: string[];
 };
 
-// Forward-compatible GameState — Battlefield and Unit
-// are imported where GameState is constructed, not here.
-// We use a generic to keep this file dependency-free.
 export type GameState = {
-  battlefield: {
-    width: number;
-    height: number;
-    grid: unknown[][];
-    units: Map<string, unknown>;
-  };
+  battlefield: Battlefield;
   players: Player[];
   currentTurn: number;
   currentPlayerIndex: number;

@@ -175,25 +175,25 @@ describe('parseCommand', () => {
       });
     });
 
-    it('is case insensitive', () => {
+    it('is case insensitive for command keyword', () => {
       const result = parseCommand('MOVE INF1 3 5');
       expect(result).toEqual({
         ok: true,
         value: {
           type: 'move',
-          unitId: 'inf1',
+          unitId: 'INF1',
           target: { x: 3, y: 5 },
         },
       });
     });
 
-    it('handles mixed case', () => {
+    it('preserves unit ID case', () => {
       const result = parseCommand('Attack ARM1 inf2');
       expect(result).toEqual({
         ok: true,
         value: {
           type: 'attack',
-          unitId: 'arm1',
+          unitId: 'ARM1',
           targetUnitId: 'inf2',
         },
       });

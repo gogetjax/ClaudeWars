@@ -22,12 +22,14 @@ export function calculateDamage(
   defenderTerrain: TerrainCell,
   randomFactor: number
 ): number {
+  const clampedFactor = Math.max(0.8,
+    Math.min(1.2, randomFactor));
   const rawDamage =
     attacker.attack
     - defender.defense
     - defenderTerrain.defenseBonus;
   const finalDamage =
-    Math.max(0, rawDamage) * randomFactor;
+    Math.max(0, rawDamage) * clampedFactor;
   return Math.round(finalDamage);
 }
 

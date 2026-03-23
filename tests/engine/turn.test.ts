@@ -93,11 +93,9 @@ describe('processActions', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const bf = result.value.battlefield;
-    const units = bf.units as Map<string, unknown>;
-    const moved = units.get('inf1') as {
-      position: { x: number; y: number };
-    };
-    expect(moved.position).toEqual({ x: 1, y: 0 });
+    const moved = bf.units.get('inf1');
+    expect(moved).toBeDefined();
+    expect(moved!.position).toEqual({ x: 1, y: 0 });
   });
 
   it('deals damage with attack action', () => {
@@ -110,10 +108,7 @@ describe('processActions', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const bf = result.value.battlefield;
-    const units = bf.units as Map<string, unknown>;
-    const def = units.get('inf2') as {
-      hp: number;
-    } | undefined;
+    const def = bf.units.get('inf2');
     // attack 4 - defense 3 - bonus 0 = 1 damage
     // inf2 starts at 10 hp, should be 9
     expect(def).toBeDefined();
@@ -155,9 +150,8 @@ describe('processActions', () => {
     ]);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const units = result.value.battlefield.units as
-      Map<string, unknown>;
-    expect(units.has('inf2')).toBe(false);
+    expect(result.value.battlefield.units.has('inf2'))
+      .toBe(false);
     // Player 2's unitIds should be empty
     const p2 = result.value.players.find(
       p => p.id === 'p2'

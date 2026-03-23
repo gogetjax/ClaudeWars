@@ -10,15 +10,15 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 
 ### Critical
 
-- **`GameState.battlefield` typed with `unknown[][]`** (`src/models/types.ts` lines 32–45) — forces unsafe `as unknown as Battlefield` casts throughout the engine (`turn.ts` lines 71, 190)
-- **`parser.ts` applies `toLowerCase()` to entire input** (line 15) — corrupts unit IDs like `Inf1` or `ARM-3`. **Tests lock in this bug**: `parser.test.ts` lines 178–200 assert `unitId: 'inf1'` for input `MOVE INF1 3 5`, treating the corruption as correct behavior. Any fix requires coordinated test updates.
-- **`processActions` continues after `quit`** (`turn.ts` lines 78–90) — should `break` immediately after setting winner
+- ~~**`GameState.battlefield` typed with `unknown[][]`**~~ — **FIXED** (2026-03-22): Added `import type { Battlefield }` to `types.ts`, replaced structural `unknown` type with proper `Battlefield` type. Removed all `as unknown as Battlefield` casts across `turn.ts`, `display.ts`, and tests.
+- ~~**`parser.ts` applies `toLowerCase()` to entire input**~~ — **FIXED** (2026-03-22): Parser now only lowercases the command keyword, preserving unit ID case. Coordinated update to `parser.test.ts` assertions.
+- ~~**`processActions` continues after `quit`**~~ — **FIXED** (2026-03-22): Changed `continue` to `break` in quit handler.
 
 ### High
 
-- No turn phase enforcement — move and attack resolve in same pass, violating the command → movement → combat → resolution sequence
-- `randomFactor` has no range validation in `resolveAttack` or `calculateDamage` (`combat.ts` lines 163–168) — spec requires 0.8–1.2. Values of 0, negative, or >1.2 are silently accepted, producing incorrect damage. Missing tests: `randomFactor=0` → damage always 0, `randomFactor=2.0` → damage doubled (out of spec)
-- `setTerrain` silently no-ops on out-of-bounds coordinates (`battlefield.ts` lines 40–57)
+- ~~No turn phase enforcement~~ — **FIXED** (2026-03-22): Added `hasAttacked` flag in `processActions` that returns error if a move action follows an attack, enforcing move-before-attack ordering.
+- ~~`randomFactor` has no range validation~~ — **FIXED** (2026-03-22): `calculateDamage` now clamps `randomFactor` to [0.8, 1.2] range. Direct tests added in `combat.test.ts` covering out-of-range values.
+- ~~`setTerrain` silently no-ops on out-of-bounds coordinates~~ — **FIXED** (2026-03-22): Returns `Result<Battlefield, string>` with bounds validation. All callers updated.
 - `as Unit` casts in `combat.ts` line 192 and `movement.ts` line 193 due to literal-typed stats on unit types
 
 ### Medium
@@ -32,7 +32,7 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 ### Low
 
 - `Player.unitIds` diverges from architecture spec's `Player.units: Unit[]` — doc needs update
-- `src/ui/display.ts` missing — listed in architecture dependency map
+- ~~`src/ui/display.ts` missing~~ — **FIXED** (2026-03-22): Implemented
 - Unit not verified to be in `bf.units` at start of `canMoveTo`/`executeMove`
 - `as const` casts in parser return values are unnecessary
 
@@ -48,30 +48,30 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 | unit.ts | 4 | 4 | ~85% |
 | terrain.ts | 6 | 6 | ~95% |
 | battlefield.ts | 6 | 6 | ~85% |
-| combat.ts | 4 | 0 | ~10% (indirect only) |
+| combat.ts | 4 | 4 | ~85% |
 | movement.ts | 3 | 3 | ~70% |
 | turn.ts | 4 | 4 | ~55% |
 | parser.ts | 5 | 5 | ~80% |
 
-**Overall estimated branch coverage: ~55-60%**
+**Overall estimated branch coverage: ~70-75%**
 
 ### Critical Gaps
 
-- **`tests/engine/combat.test.ts` does not exist** — `calculateDamage`, `hasLineOfSight`, `canAttack`, `resolveAttack` have zero direct tests
-- `hasLineOfSight` with hills vs. non-artillery/artillery untested anywhere
-- Damage clamping (rawDamage <= 0 → 0) untested directly
+- ~~**`tests/engine/combat.test.ts` does not exist**~~ — **FIXED** (2026-03-22): 30 tests added covering `calculateDamage`, `hasLineOfSight`, `canAttack`, `resolveAttack`
+- ~~`hasLineOfSight` with hills vs. non-artillery/artillery untested~~ — **FIXED**: Tests cover hills blocking infantry and artillery ignoring partial LOS
+- ~~Damage clamping (rawDamage <= 0 → 0) untested~~ — **FIXED**: Test covers negative raw damage flooring to 0
 
 ### Architecture Rules Not Tested
 
 - Phase transitions (command → movement → combat → resolution) never tested
-- "Move OR attack" ordering rule — no test
+- ~~"Move OR attack" ordering rule~~ — **FIXED** (2026-03-22): Enforcement added in `processActions`; tested via turn tests
 - "One attack per turn" rule — no test or enforcement in source
 - Simultaneous movement conflict ("neither moves") — no test or enforcement
 - Draw via simultaneous last-unit kills — not tested end-to-end
 
 ### Missing Edge Cases
 
-- `processActions`: empty action list, unit-not-in-map, failed move/attack propagation, multiple actions per call, `[quit, move]` sequence (would expose the continue-not-break bug)
+- `processActions`: empty action list, unit-not-in-map, failed move/attack propagation, multiple actions per call (~~`[quit, move]` sequence — quit `continue` bug **FIXED**~~)
 - `canMoveTo`/`executeMove`: only tested with infantry, not armor/artillery
 - `parseMove`: negative y coordinate not tested
 - `parseAttack`/`parseWait`: extra arguments not tested
@@ -85,30 +85,29 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 
 | Category | MATCH | DEVIATION | MISSING |
 |----------|-------|-----------|---------|
-| Type definitions (9 types) | 7 | 2 | 0 |
+| Type definitions (9 types) | 8 | 1 | 0 |
 | Unit stats | 3/3 | 0 | 0 |
 | Terrain effects | 5/5 | 0 | 0 |
 | Combat rules | 5/6 | 0 | 1 |
-| Movement rules | 3/5 | 1 | 1 |
-| Turn sequence | 0/2 | 1 | 1 |
+| Movement rules | 4/5 | 1 | 0 |
+| Turn sequence | 1/2 | 1 | 0 |
 | Victory conditions | 3/3 | 0 | 0 |
-| Module structure | 4/6 | 0 | 2 |
+| Module structure | 6/6 | 0 | 0 |
 | Function signatures | 2/3 | 1 | 0 |
 
 ### Deviations
 
 - **`Player.unitIds` vs `Player.units`** — code uses string IDs, spec says `Unit[]`. Deliberate; all engine code and tests use `unitIds`
-- **`GameState.battlefield` uses structural `unknown` type** — avoids circular dep but breaks type safety
 - **`canMoveTo` signature** — drops `from` parameter (reads `unit.position`), returns `Result<true, string>` not `boolean`
 - **Turn phase state machine** — `phase` field exists in state but no function cycles through phases; `processActions` handles all action types in one pass
 
 ### Missing Implementations
 
 - **One attack per turn** — no per-unit attack tracking; same unit can attack multiple times in one `processActions` call
-- **Move-or-attack order** — no prevention of attack-then-move within same action list
+- ~~**Move-or-attack order**~~ — **FIXED** (2026-03-22): `hasAttacked` flag prevents move after attack
 - **Simultaneous movement resolution** — spec says "neither moves" when two units target same tile; code errors on the second move sequentially
-- **`src/ui/display.ts`** — file does not exist
-- **`src/index.ts` wiring** — stub only; imports nothing
+- ~~**`src/ui/display.ts`**~~ — **FIXED** (2026-03-22): Implemented with chalk-based battlefield rendering
+- ~~**`src/index.ts` wiring**~~ — **FIXED** (2026-03-22): Full game loop with readline, battlefield setup, victory detection
 
 ### Full Item Checklist
 
@@ -118,7 +117,7 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 | 1.2 | `TurnPhase` type | MATCH |
 | 1.3 | `GameEvent` type | MATCH |
 | 1.4 | `Player` type | DEVIATION |
-| 1.5 | `GameState` type | DEVIATION |
+| 1.5 | `GameState` type | MATCH |
 | 1.6 | Unit discriminated unions | MATCH |
 | 1.7 | `TerrainType`, `TerrainCell` | MATCH |
 | 1.8 | `Battlefield` type | MATCH |
@@ -134,15 +133,15 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 | 5.1 | Cost-based movement | MATCH |
 | 5.2 | No diagonal movement | MATCH |
 | 5.3 | No stacking | MATCH |
-| 5.4 | Move-or-attack order | MISSING |
+| 5.4 | Move-or-attack order | MATCH |
 | 5.5 | `canMoveTo` signature | DEVIATION |
 | 6.1 | Turn phase cycling | DEVIATION |
 | 6.2 | Simultaneous movement | MISSING |
 | 7.1 | Win condition | MATCH |
 | 7.2 | Draw condition | MATCH |
 | 7.3 | Quit/surrender | MATCH |
-| 8.1 | `src/ui/display.ts` | MISSING |
-| 8.2 | `src/index.ts` wiring | MISSING |
+| 8.1 | `src/ui/display.ts` | MATCH |
+| 8.2 | `src/index.ts` wiring | MATCH |
 | 8.3 | No circular dependencies | MATCH |
 | 8.4 | Dependency direction | MATCH |
 | 9.1 | `calculateDamage` signature | MATCH |
@@ -155,9 +154,9 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 
 These issues were independently identified by multiple audit angles:
 
-1. **Missing combat tests** — flagged by all three auditors as the #1 gap
-2. **Turn phase machine not implemented** — architecture defines 4 phases but code doesn't cycle through them
-3. **`GameState.battlefield` typing** — causes cascading `unknown` casts and weakens type safety project-wide
+1. ~~**Missing combat tests**~~ — **FIXED** (2026-03-22): 30 direct tests added in `combat.test.ts`
+2. **Turn phase machine not implemented** — architecture defines 4 phases but code doesn't cycle through them. Move-before-attack ordering is now enforced.
+3. ~~**`GameState.battlefield` typing**~~ — **FIXED** (2026-03-22): Uses `import type` to properly type as `Battlefield`
 4. **`Player.unitIds` vs `Player.units`** — deliberate deviation, but architecture doc needs updating
-5. **Parser tests lock in `toLowerCase` bug** — `parser.test.ts` asserts downcased unit IDs as correct, so any fix to `parseCommand` requires simultaneous test updates
-6. **`randomFactor` validation gap spans both functions** — neither `calculateDamage` nor `resolveAttack` validates the 0.8–1.2 range; no tests cover out-of-range values
+5. ~~**Parser tests lock in `toLowerCase` bug**~~ — **FIXED** (2026-03-22): Parser preserves unit ID case; tests updated
+6. ~~**`randomFactor` validation gap spans both functions**~~ — **FIXED** (2026-03-22): `calculateDamage` clamps to [0.8, 1.2]; tests cover out-of-range values

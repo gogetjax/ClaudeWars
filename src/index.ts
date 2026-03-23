@@ -54,21 +54,32 @@ function askQuestion(
 function setupBattlefield() {
   let bf = createBattlefield(10, 8);
 
+  // Helper to unwrap setTerrain result
+  function applyTerrain(
+    b: ReturnType<typeof createBattlefield>,
+    x: number, y: number,
+    t: ReturnType<typeof forest>
+  ) {
+    const r = setTerrain(b, x, y, t);
+    if (!r.ok) throw new Error(r.error);
+    return r.value;
+  }
+
   // Forest patch (left-center)
   for (const [x, y] of [[2, 2], [2, 3], [3, 2]]) {
-    bf = setTerrain(bf, x, y, forest());
+    bf = applyTerrain(bf, x, y, forest());
   }
   // Hills on the right side
   for (const [x, y] of [[7, 1], [8, 1], [8, 2]]) {
-    bf = setTerrain(bf, x, y, hills());
+    bf = applyTerrain(bf, x, y, hills());
   }
   // River running through the middle (column 5)
   for (let y = 0; y < 8; y++) {
-    bf = setTerrain(bf, 5, y, river());
+    bf = applyTerrain(bf, 5, y, river());
   }
   // Urban area (center-south)
   for (const [x, y] of [[4, 5], [4, 6], [3, 6]]) {
-    bf = setTerrain(bf, x, y, urban());
+    bf = applyTerrain(bf, x, y, urban());
   }
 
   // Player 1 (Blue Force) — left side

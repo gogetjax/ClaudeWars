@@ -48,8 +48,10 @@ describe('createBattlefield()', () => {
 describe('setTerrain()', () => {
   it('places terrain at the correct position', () => {
     const bf = createBattlefield(5, 5);
-    const updated = setTerrain(bf, 2, 3, forest());
-    expect(updated.grid[3][2].type).toBe('forest');
+    const result = setTerrain(bf, 2, 3, forest());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.grid[3][2].type).toBe('forest');
   });
 
   it('does not mutate the original', () => {
@@ -60,7 +62,10 @@ describe('setTerrain()', () => {
 
   it('only changes the target cell', () => {
     const bf = createBattlefield(3, 3);
-    const updated = setTerrain(bf, 1, 1, forest());
+    const result = setTerrain(bf, 1, 1, forest());
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const updated = result.value;
     // Check corners are still plains
     expect(updated.grid[0][0].type).toBe('plains');
     expect(updated.grid[0][2].type).toBe('plains');
@@ -68,6 +73,21 @@ describe('setTerrain()', () => {
     expect(updated.grid[2][2].type).toBe('plains');
     // Target changed
     expect(updated.grid[1][1].type).toBe('forest');
+  });
+
+  it('returns error for out-of-bounds coordinates', () => {
+    const bf = createBattlefield(5, 5);
+    const result = setTerrain(bf, 10, 10, forest());
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('out of bounds');
+    }
+  });
+
+  it('returns error for negative coordinates', () => {
+    const bf = createBattlefield(5, 5);
+    const result = setTerrain(bf, -1, 0, forest());
+    expect(result.ok).toBe(false);
   });
 });
 
@@ -354,20 +374,22 @@ describe('setTerrain() preserves units', () => {
     const r = placeUnit(bf, unit);
     if (!r.ok) return;
 
-    const updated = setTerrain(
-      r.value, 2, 2, forest()
-    );
-    expect(updated.grid[2][2].type).toBe('forest');
-    expect(updated.units.get('inf1')).toEqual(unit);
-    expect(updated.units.size).toBe(1);
+    const tr = setTerrain(r.value, 2, 2, forest());
+    expect(tr.ok).toBe(true);
+    if (!tr.ok) return;
+    expect(tr.value.grid[2][2].type).toBe('forest');
+    expect(tr.value.units.get('inf1')).toEqual(unit);
+    expect(tr.value.units.size).toBe(1);
   });
 
   it('can set multiple terrain cells', () => {
     const bf = createBattlefield(3, 3);
-    const step1 = setTerrain(bf, 0, 0, forest());
-    const step2 = setTerrain(step1, 2, 2, hills());
-    expect(step2.grid[0][0].type).toBe('forest');
-    expect(step2.grid[2][2].type).toBe('hills');
-    expect(step2.grid[1][1].type).toBe('plains');
+    const r1 = setTerrain(bf, 0, 0, forest());
+    if (!r1.ok) throw new Error(r1.error);
+    const r2 = setTerrain(r1.value, 2, 2, hills());
+    if (!r2.ok) throw new Error(r2.error);
+    expect(r2.value.grid[0][0].type).toBe('forest');
+    expect(r2.value.grid[2][2].type).toBe('hills');
+    expect(r2.value.grid[1][1].type).toBe('plains');
   });
 });

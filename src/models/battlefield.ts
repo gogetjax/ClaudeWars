@@ -42,7 +42,15 @@ export function setTerrain(
   x: number,
   y: number,
   terrain: TerrainCell
-): Battlefield {
+): Result<Battlefield, string> {
+  if (
+    x < 0 || x >= bf.width ||
+    y < 0 || y >= bf.height
+  ) {
+    return err(
+      `Position (${x}, ${y}) is out of bounds`
+    );
+  }
   const newGrid = bf.grid.map(
     (row, ry) => ry === y
       ? row.map(
@@ -50,10 +58,10 @@ export function setTerrain(
         )
       : row
   );
-  return {
+  return ok({
     ...bf,
     grid: newGrid,
-  };
+  });
 }
 
 // Place a unit; error if tile is occupied

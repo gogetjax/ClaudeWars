@@ -12,13 +12,13 @@ import {
 export function parseCommand(
   input: string
 ): Result<Action, string> {
-  const trimmed = input.trim().toLowerCase();
+  const trimmed = input.trim();
   if (trimmed === '') {
     return err('Empty command');
   }
 
   const parts = trimmed.split(/\s+/);
-  const command = parts[0];
+  const command = parts[0].toLowerCase();
 
   switch (command) {
     case 'move':

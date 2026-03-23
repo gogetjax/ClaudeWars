@@ -3,9 +3,6 @@
 // All functions are async because chalk must be
 // imported dynamically in a CommonJS project.
 import { GameState } from '../models/types.js';
-import {
-  Battlefield,
-} from '../models/battlefield.js';
 import { Unit } from '../models/unit.js';
 import { TerrainCell } from '../models/terrain.js';
 
@@ -45,7 +42,7 @@ export async function renderBattlefield(
 ): Promise<string> {
   const chalk = await getChalk();
   const bf =
-    state.battlefield as unknown as Battlefield;
+    state.battlefield;
   const lines: string[] = [];
 
   // Column header
@@ -106,7 +103,7 @@ export async function renderUnitStatus(
 ): Promise<string> {
   const chalk = await getChalk();
   const bf =
-    state.battlefield as unknown as Battlefield;
+    state.battlefield;
   const player = state.players.find(
     p => p.id === playerId
   );

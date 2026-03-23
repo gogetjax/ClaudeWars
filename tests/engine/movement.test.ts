@@ -30,6 +30,17 @@ function place(
   return result.value;
 }
 
+// Helper: set terrain and assert success
+function terrain(
+  bf: ReturnType<typeof createBattlefield>,
+  x: number, y: number,
+  t: ReturnType<typeof forest>
+) {
+  const result = setTerrain(bf, x, y, t);
+  if (!result.ok) throw new Error(result.error);
+  return result.value;
+}
+
 describe('getMovementCost', () => {
   it('returns 0 for same position', () => {
     const bf = createBattlefield(5, 5);
@@ -49,7 +60,7 @@ describe('getMovementCost', () => {
 
   it('costs 2 for forest tile', () => {
     let bf = createBattlefield(5, 5);
-    bf = setTerrain(bf, 1, 0, forest());
+    bf = terrain(bf, 1, 0, forest());
     const result = getMovementCost(
       { x: 0, y: 0 }, { x: 2, y: 0 }, bf
     );
@@ -59,7 +70,7 @@ describe('getMovementCost', () => {
 
   it('costs 3 for river tile', () => {
     let bf = createBattlefield(5, 5);
-    bf = setTerrain(bf, 1, 0, river());
+    bf = terrain(bf, 1, 0, river());
     const result = getMovementCost(
       { x: 0, y: 0 }, { x: 1, y: 0 }, bf
     );
@@ -73,7 +84,7 @@ describe('getMovementCost', () => {
     // Via row 1: (0,0)->(0,1)->(1,1)->(2,1)->(2,0) = 4
     // Direct is cheaper
     let bf = createBattlefield(3, 3);
-    bf = setTerrain(bf, 1, 0, forest());
+    bf = terrain(bf, 1, 0, forest());
     const result = getMovementCost(
       { x: 0, y: 0 }, { x: 2, y: 0 }, bf
     );
@@ -163,7 +174,7 @@ describe('canMoveTo', () => {
         'i1', 'p1', { x: 0, y: 0 }
       );
       let bf = createBattlefield(5, 5);
-      bf = setTerrain(bf, 1, 0, river());
+      bf = terrain(bf, 1, 0, river());
       bf = place(bf, inf);
       const result = canMoveTo(
         inf, { x: 1, y: 0 }, bf
@@ -178,7 +189,7 @@ describe('canMoveTo', () => {
   it('armor can cross river (cost 3 = move 3)', () => {
     const arm = createArmor('a1', 'p1', { x: 0, y: 0 });
     let bf = createBattlefield(5, 5);
-    bf = setTerrain(bf, 1, 0, river());
+    bf = terrain(bf, 1, 0, river());
     bf = place(bf, arm);
     const result = canMoveTo(arm, { x: 1, y: 0 }, bf);
     expect(result).toEqual({ ok: true, value: true });
@@ -213,7 +224,7 @@ describe('canMoveTo', () => {
         'i1', 'p1', { x: 0, y: 0 }
       );
       let bf = createBattlefield(5, 5);
-      bf = setTerrain(bf, 1, 0, forest());
+      bf = terrain(bf, 1, 0, forest());
       bf = place(bf, inf);
       // Moving to the forest tile costs 2 = movement
       const result = canMoveTo(
