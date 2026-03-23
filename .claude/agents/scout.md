@@ -6,7 +6,7 @@ allowed-tools:
   - Grep
   - Glob
   - LS
-model: claude-sonnet-4-6-20260217
+model: claude-sonnet-4-6
 ---
 
 You are the Scout agent for the ClaudeWars project.
