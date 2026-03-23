@@ -11,13 +11,13 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 ### Critical
 
 - **`GameState.battlefield` typed with `unknown[][]`** (`src/models/types.ts` lines 32–45) — forces unsafe `as unknown as Battlefield` casts throughout the engine (`turn.ts` lines 71, 190)
-- **`parser.ts` applies `toLowerCase()` to entire input** (line 15) — corrupts unit IDs like `Inf1` or `ARM-3`
+- **`parser.ts` applies `toLowerCase()` to entire input** (line 15) — corrupts unit IDs like `Inf1` or `ARM-3`. **Tests lock in this bug**: `parser.test.ts` lines 178–200 assert `unitId: 'inf1'` for input `MOVE INF1 3 5`, treating the corruption as correct behavior. Any fix requires coordinated test updates.
 - **`processActions` continues after `quit`** (`turn.ts` lines 78–90) — should `break` immediately after setting winner
 
 ### High
 
 - No turn phase enforcement — move and attack resolve in same pass, violating the command → movement → combat → resolution sequence
-- `randomFactor` has no range validation in `resolveAttack` (`combat.ts` lines 163–168) — spec requires 0.8–1.2
+- `randomFactor` has no range validation in `resolveAttack` or `calculateDamage` (`combat.ts` lines 163–168) — spec requires 0.8–1.2. Values of 0, negative, or >1.2 are silently accepted, producing incorrect damage. Missing tests: `randomFactor=0` → damage always 0, `randomFactor=2.0` → damage doubled (out of spec)
 - `setTerrain` silently no-ops on out-of-bounds coordinates (`battlefield.ts` lines 40–57)
 - `as Unit` casts in `combat.ts` line 192 and `movement.ts` line 193 due to literal-typed stats on unit types
 
@@ -53,7 +53,7 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 | turn.ts | 4 | 4 | ~55% |
 | parser.ts | 5 | 5 | ~80% |
 
-**Overall estimated branch coverage: ~60-65%**
+**Overall estimated branch coverage: ~55-60%**
 
 ### Critical Gaps
 
@@ -71,7 +71,7 @@ Three-angle audit of the ClaudeWars codebase: code quality, test coverage, and a
 
 ### Missing Edge Cases
 
-- `processActions`: empty action list, unit-not-in-map, failed move/attack propagation, multiple actions per call
+- `processActions`: empty action list, unit-not-in-map, failed move/attack propagation, multiple actions per call, `[quit, move]` sequence (would expose the continue-not-break bug)
 - `canMoveTo`/`executeMove`: only tested with infantry, not armor/artillery
 - `parseMove`: negative y coordinate not tested
 - `parseAttack`/`parseWait`: extra arguments not tested
@@ -159,3 +159,5 @@ These issues were independently identified by multiple audit angles:
 2. **Turn phase machine not implemented** — architecture defines 4 phases but code doesn't cycle through them
 3. **`GameState.battlefield` typing** — causes cascading `unknown` casts and weakens type safety project-wide
 4. **`Player.unitIds` vs `Player.units`** — deliberate deviation, but architecture doc needs updating
+5. **Parser tests lock in `toLowerCase` bug** — `parser.test.ts` asserts downcased unit IDs as correct, so any fix to `parseCommand` requires simultaneous test updates
+6. **`randomFactor` validation gap spans both functions** — neither `calculateDamage` nor `resolveAttack` validates the 0.8–1.2 range; no tests cover out-of-range values
