@@ -17,6 +17,7 @@ Players command units (infantry, armor, artillery) on a grid battlefield.
 - `src/ui/` — Terminal display using chalk
 - `tests/` — Mirror src/ structure with .test.ts files
 - See @docs/architecture.md for detailed design
+- See @docs/audit-report.md for detailed project audit findings
 
 ## Code Conventions
 - Pure functions preferred; no classes unless modeling game entities
