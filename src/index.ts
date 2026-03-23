@@ -35,16 +35,49 @@ import {
 } from './ui/display.js';
 
 /**
- * Wrap readline.question in a promise for
- * async/await usage.
+ * Queue-based line reader. Buffers eagerly-emitted
+ * readline 'line' events so no input is lost
+ * between async awaits (Node.js readline fires all
+ * buffered events synchronously on piped stdin).
  */
-function askQuestion(
-  rl: readline.Interface,
-  prompt: string
-): Promise<string> {
-  return new Promise(resolve => {
-    rl.question(prompt, answer => resolve(answer));
+function createLineReader() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: process.stdin.isTTY ?? false,
   });
+
+  const pending: string[] = [];
+  const waiting: ((line: string) => void)[] = [];
+
+  rl.on('line', line => {
+    const resolve = waiting.shift();
+    if (resolve) {
+      resolve(line);
+    } else {
+      pending.push(line);
+    }
+  });
+
+  rl.on('close', () => {
+    for (const resolve of waiting) {
+      resolve('');
+    }
+    waiting.length = 0;
+  });
+
+  function ask(prompt: string): Promise<string> {
+    process.stdout.write(prompt);
+    const queued = pending.shift();
+    if (queued !== undefined) {
+      return Promise.resolve(queued);
+    }
+    return new Promise(resolve => {
+      waiting.push(resolve);
+    });
+  }
+
+  return { ask, close: () => rl.close() };
 }
 
 /**
@@ -129,15 +162,14 @@ function setupBattlefield() {
  * flag indicating if the player wants to quit.
  */
 async function collectActions(
-  rl: readline.Interface,
+  ask: (prompt: string) => Promise<string>,
   playerName: string
 ): Promise<{ actions: Action[]; quit: boolean }> {
   const actions: Action[] = [];
 
   while (true) {
-    const input = await askQuestion(
-      rl,
-      `[${playerName}] Enter command (or 'done'): `
+    const input = await ask(
+      `[${playerName}] Command (or 'done'): `
     );
     const trimmed = input.trim().toLowerCase();
     if (trimmed === 'done') break;
@@ -164,10 +196,7 @@ async function collectActions(
  */
 async function main() {
   let state = setupBattlefield();
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
+  const { ask, close } = createLineReader();
 
   console.log('ClaudeWars — Military Simulation');
   console.log('Commands: move <unit> <x> <y>');
@@ -190,7 +219,7 @@ async function main() {
 
     // Collect commands from the current player
     const { actions, quit } = await collectActions(
-      rl, player.name
+      ask, player.name
     );
 
     // Process all collected actions
@@ -214,7 +243,7 @@ async function main() {
   console.log(await renderBattlefield(state));
   console.log(await renderVictory(state));
 
-  rl.close();
+  close();
 }
 
 main();
