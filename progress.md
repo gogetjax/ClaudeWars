@@ -25,5 +25,17 @@
 ### In Progress
 
 ### Pending
-- [ ] Terminal display UI
+- [x] Main game loop (src/index.ts)
+      -- Wires all modules: models, engine, parser, UI
+      -- 10x8 battlefield with terrain variety
+      -- Preset 2-player setup (Blue/Red, 4 units each)
+      -- readline-based interactive command input
+      -- Victory detection, quit/surrender handling
+      -- Compiles clean, all 147 tests passing
+- [x] Terminal display UI (src/ui/display.ts)
+      — renderBattlefield, renderUnitStatus, renderEventLog,
+        renderTurnHeader, renderVictory
+      — Lazy chalk import for CJS/ESM compat
+      — All async (Promise<string>) for chalk loading
+      — Compiles clean, all 147 tests still passing
 - [ ] End-to-end integration tests (parse → turn → engine)
